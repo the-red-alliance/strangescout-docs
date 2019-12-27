@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Build site
+      run: |
+        pip install mkdocs mkdocs-material
+        mkdocs build
+    - name: Deploy to GitHub Pages
+      uses: crazy-max/ghaction-github-pages@v1.2.5
+      with:
+        target_branch: gh-pages
+        build_dir: site
+        committer_name: GitHub Actions
+        commit_message: update docs from source

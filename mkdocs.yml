@@ -1,0 +1,26 @@
+site_name: StrangeScout Docs
+site_description: 'The documentation of the StrangeScout scouting ststem'
+site_url: 'https://the-red-alliance.github.io/strangescout-docs/'
+site_author: 'The Red Alliance projects maintainers'
+
+repo_name: 'StrangeScout build'
+repo_url: 'https://github.com/the-red-alliance/strangescout-deploy'
+
+# Copyright
+copyright: 'Copyright &copy; 2019 The Red Alliance Project'
+
+# Configuration
+theme:
+  name: 'material'
+  font:
+    text: 'Noto Sans'
+    code: 'Roboto Mono'
+  logo:
+    icon: 'book'
+extra:
+  disqus: 'StrangeScout'
+markdown_extensions:
+  - admonition
+  - footnotes
+  - toc:
+      permalink: true
