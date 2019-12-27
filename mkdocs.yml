@@ -3,8 +3,11 @@ site_description: 'The documentation of the StrangeScout scouting ststem'
 site_url: 'https://the-red-alliance.github.io/strangescout-docs/'
 site_author: 'The Red Alliance projects maintainers'
 
-repo_name: 'StrangeScout build'
+repo_name: 'Deployment Repo'
 repo_url: 'https://github.com/the-red-alliance/strangescout-deploy'
+
+# disable editing
+edit_uri: ''
 
 # Copyright
 copyright: 'Copyright &copy; 2019 The Red Alliance Project'
@@ -17,10 +20,19 @@ theme:
     code: 'Roboto Mono'
   logo:
     icon: 'book'
-extra:
-  disqus: 'StrangeScout'
+
+nav:
+  - Home: index.md
+  - Installation Guide: installation-guide/index.md
+  - Scouter Guide: scouter-guide.md
+  - StrangeScout API:
+    - Authentication Routes: strangescout-api/authentication-routes.md
+
 markdown_extensions:
+  - meta
   - admonition
   - footnotes
+  - codehilite:
+      linenums: true
   - toc:
       permalink: true
