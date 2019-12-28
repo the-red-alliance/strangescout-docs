@@ -289,6 +289,27 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#creating-the-certificate-file" class="md-nav__link">
+    Creating the certificate file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-the-compose-file" class="md-nav__link">
+    Creating the compose file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#starting-the-reverse-proxy" class="md-nav__link">
+    Starting the reverse proxy
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -408,6 +429,27 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#creating-the-certificate-file" class="md-nav__link">
+    Creating the certificate file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-the-compose-file" class="md-nav__link">
+    Creating the compose file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#starting-the-reverse-proxy" class="md-nav__link">
+    Starting the reverse proxy
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -434,7 +476,9 @@
                 
                   <h1>Installation Guide</h1>
                 
-                <h2 id="before-you-install">Before you install<a class="headerlink" href="#before-you-install" title="Permanent link">&para;</a></h2>
+                <!-- Disables disqus comment system for this page -->
+
+<h2 id="before-you-install">Before you install<a class="headerlink" href="#before-you-install" title="Permanent link">&para;</a></h2>
 <p>The following installation guide will document setup with <a href="https://www.docker.com/">Docker</a> because it's what we at <em>Team 1533 Triple Strange</em> and <em>The Red Alliance</em> use. It's also important to note that StrangeScout is designed to be run behind a reverse proxy, and as such does <strong>not</strong> have built-in support for HTTPS certificates. We do provide example configurations using the <a href="https://containo.us/traefik/">traefik reverse proxy</a>, but you are more than welcome to use your own reverse proxy, or even fork the code and roll in your own support for HTTPS.</p>
 <h3 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h3>
 <p>StrangeScout only has two true dependencies:</p>
@@ -443,6 +487,7 @@
 <li><a href="https://docs.docker.com/compose/">Docker Compose</a></li>
 </ul>
 <p><em>Docker</em> is the program that allows services to be run as individual <em>containers</em> on a host machine, and <em>Docker Compose</em> is a utility that simplifies choreography of multiple docker containers.</p>
+<p>You will also need to have a domain pointing at the server you're installing StrangeScout on.</p>
 <hr />
 <p>First, install Docker following the available installation instructions for your distribution of choice, for example on an x86_64 Ubuntu server you would run the following (as root):</p>
 <p><a href="https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-repository"><em>official instructions</em></a></p>
@@ -529,9 +574,15 @@ systemctl <span class="nb">enable</span> docker
 </pre></div>
 </td></tr></table>
 
-<hr />
 <h2 id="setting-up-the-reverse-proxy">Setting up the reverse proxy<a class="headerlink" href="#setting-up-the-reverse-proxy" title="Permanent link">&para;</a></h2>
 <p>Now that all dependencies have been installed we can begin setting up traefik for our reverse proxy.</p>
+<p>For the sake of organization and due to the way docker-compose names containers, you should make a directory to store the reverse proxy files. Run the following two commands before continuing to setup the reverse proxy:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2</pre></div></td><td class="code"><div class="codehilite"><pre><span></span>mkdir -v reverse-proxy
+<span class="nb">cd</span> reverse-proxy
+</pre></div>
+</td></tr></table>
+
 <h3 id="creating-a-docker-network">Creating a docker network<a class="headerlink" href="#creating-a-docker-network" title="Permanent link">&para;</a></h3>
 <p>The first step to setting up traefik is to create a new docker network:</p>
 <table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span>docker network create strangescout_main
@@ -539,6 +590,455 @@ systemctl <span class="nb">enable</span> docker
 </td></tr></table>
 
 <p>This will allow for containers on the same network to easily communicate with each other. In our case it allows for the StrangeScout server to communicate with the database in its own separate container.</p>
+<h3 id="creating-the-certificate-file">Creating the certificate file<a class="headerlink" href="#creating-the-certificate-file" title="Permanent link">&para;</a></h3>
+<p>Any modern website should be served using the HTTPS protocol. This ensures any data sent to or from the users is encrypted and cannot be read by unauthorized persons. Our reverse proxy, traefik, has built in support for HTTPS, and can automatically update certificates for HTTPS using ACME (Automated Certificate Management Environment). To do so, we need somewhere to store these certificates. Create a file with the following command as root:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span>touch acme.json
+</pre></div>
+</td></tr></table>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In order for traefik to store certificates in this file, it must be owned by root. When creating the file, ensure you're running the command as root or using sudo!</p>
+</div>
+<p>In order to work properly, we need to set specific permissions on this file. It must <em>ONLY</em> be readable and writable by root. Update the files permissions with the following command as root:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span>chmod <span class="m">600</span> acme.json
+</pre></div>
+</td></tr></table>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>chmod</code> is used to update file attributes. In this case, we're setting the file permissions to 600, which corresponds to R/W for the owner, and no permissions for anyone else. Because the file is owned by root, only root can access the file. If these permissions are not set traefik will not be able to get certificates.</p>
+</div>
+<h3 id="creating-the-compose-file">Creating the compose file<a class="headerlink" href="#creating-the-compose-file" title="Permanent link">&para;</a></h3>
+<p>Now that our network and ACME certificate file have been created, we can put together the docker-compose file for the reverse proxy. To start, we need to create our compose file:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span>touch docker-compose.yml
+</pre></div>
+</td></tr></table>
+
+<hr />
+<p>Now that we have our compose file, let's start with some basic options:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="c1"># docker-compose.yml</span>
+
+<span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3.3&#39;</span>
+
+<span class="nt">services</span><span class="p">:</span>
+    <span class="nt">reverse-proxy</span><span class="p">:</span>
+        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">traefik:v2.0</span>
+        <span class="nt">container_name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">hostname</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+</pre></div>
+</td></tr></table>
+
+<p>What we're doing here is start off by stating that we're using version 3.3 of the docker-compose syntax. Next we start our list of services, and define a service with the name <code>reverse-proxy</code>. Within the reverse-proxy service we specify that it should use the <code>traefik:v2.0</code> image from Docker Hub, that the container name should be <code>reverse-proxy</code>, the hostname should be <code>reverse-proxy</code>, and the container should always restart if it fails.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>the <em>hostname</em> key sets friendly names that containers can be accessed by on the docker network we created earlier. While this isn't necessary for the reverse proxy container, it will be useful later when we want to specify the url to access the database at.</p>
+</div>
+<hr />
+<p>Next, we'll add some command line options that will be given to traefik when it runs:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="c1"># docker-compose.yml</span>
+
+<span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3.3&#39;</span>
+
+<span class="nt">services</span><span class="p">:</span>
+    <span class="nt">reverse-proxy</span><span class="p">:</span>
+        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">traefik:v2.0</span>
+        <span class="nt">container_name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">hostname</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+
+<span class="hll">        <span class="nt">command</span><span class="p">:</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--providers.docker</span>
+</span><span class="hll">
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.web.address=:80</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.websecure.address=:443</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.mongodb.address=:27017</span>
+</span><span class="hll">
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.email=&lt;youremail@yourdomain.tld&gt;</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.storage=/acme.json</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.tlschallenge=true</span>
+</span></pre></div>
+</td></tr></table>
+
+<ul>
+<li><code>--providers.docker</code> tells traefik we have services running via docker</li>
+<li><code>--entrypoints.web.address=:80</code>: Sets the port on the entrypoint named <code>web</code> to port 80</li>
+<li><code>--entrypoints.websecure.address=:443</code> sets the port on the entrypoint named <code>websecure</code> to port 443</li>
+<li><code>--entrypoints.mongodb.address=:27017</code> sets the port on the entrypoint named <code>mongodb</code> to port 27017</li>
+<li><code>--certificatesresolvers.leresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory</code> sets the URL of the ca server to use for ACME certificates</li>
+<li><code>--certificatesresolvers.leresolver.acme.email=&lt;youremail@yourdomain.tld&gt;</code> sets the email used when acquiring certificates</li>
+<li><code>--certificatesresolvers.leresolver.acme.storage=/acme.json</code> tells traefik where to store certificates</li>
+<li><code>--certificatesresolvers.leresolver.acme.tlschallenge=true</code> tells traefik what method to use to get certificates</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Entrypoints are points where network traffic can enter traefik to be routed. The <code>web</code> entrypoint will be used for unencrypted HTTP traffic (we'll be setting it up to automatically redirect to HTTPS as well), the <code>websecure</code> entrypoint for encrypted HTTPS traffic, and the <code>mongodb</code> entrypoint for direct access to our database.</p>
+</div>
+<hr />
+<p>Next we need to open the ports that we defined in our traefik entrypoints:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="c1"># docker-compose.yml</span>
+
+<span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3.3&#39;</span>
+
+<span class="nt">services</span><span class="p">:</span>
+    <span class="nt">reverse-proxy</span><span class="p">:</span>
+        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">traefik:v2.0</span>
+        <span class="nt">container_name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">hostname</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+
+        <span class="nt">command</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--providers.docker</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.web.address=:80</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.websecure.address=:443</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.mongodb.address=:27017</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.email=&lt;youremail@yourdomain.tld&gt;</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.storage=/acme.json</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.tlschallenge=true</span>
+
+<span class="hll">        <span class="nt">ports</span><span class="p">:</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="s">&#39;80:80&#39;</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="s">&#39;443:443&#39;</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="s">&#39;27017:27017&#39;</span>
+</span></pre></div>
+</td></tr></table>
+
+<p>Each port definition has two parts, separated by a <code>:</code> colon. The first part describes the port to map to on the host machine, while the second part is the port to bind to within the container. For example, <code>80:80</code> means that requests to port 80 on the host machine will route to port 80 within the container. In our case we are routing ports 80, 443, and 27017 on the host machine to those same ports within the traefik container.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Port definitions can also be more specific, including a specific interface they should listen to. For example, <code>127.0.0.1:80:80</code> would only map traffic on port 80 from localhost to the container.</p>
+</div>
+<hr />
+<p>The next step is to setup some volumes:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="c1"># docker-compose.yml</span>
+
+<span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3.3&#39;</span>
+
+<span class="nt">services</span><span class="p">:</span>
+    <span class="nt">reverse-proxy</span><span class="p">:</span>
+        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">traefik:v2.0</span>
+        <span class="nt">container_name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">hostname</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+
+        <span class="nt">command</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--providers.docker</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.web.address=:80</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.websecure.address=:443</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.mongodb.address=:27017</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.email=&lt;youremail@yourdomain.tld&gt;</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.storage=/acme.json</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.tlschallenge=true</span>
+
+        <span class="nt">ports</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;80:80&#39;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;443:443&#39;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;27017:27017&#39;</span>
+
+<span class="hll">        <span class="nt">volumes</span><span class="p">:</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="s">&quot;./acme.json:/acme.json&quot;</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="s">&quot;/var/run/docker.sock:/var/run/docker.sock:ro&quot;</span>
+</span></pre></div>
+</td></tr></table>
+
+<p>Here we are defining two volumes for the container.</p>
+<ul>
+<li><code>"./acme.json:/acme.json"</code> mounts our ACME certificate file to <code>/acme.json</code> in the container, which is where we've told traefik to look for it</li>
+<li><code>"/var/run/docker.sock:/var/run/docker.sock:ro"</code> mounts our host machine's docker socket read-only inside the container</li>
+</ul>
+<p>Mounting the docker socket in the container allows traefik to find out which containers it needs to connect to and what traffic to route to them.</p>
+<hr />
+<p>Next we need to set some labels on the container, which will be used to configure some additional features:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="c1"># docker-compose.yml</span>
+
+<span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3.3&#39;</span>
+
+<span class="nt">services</span><span class="p">:</span>
+    <span class="nt">reverse-proxy</span><span class="p">:</span>
+        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">traefik:v2.0</span>
+        <span class="nt">container_name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">hostname</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+
+        <span class="nt">command</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--providers.docker</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.web.address=:80</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.websecure.address=:443</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.mongodb.address=:27017</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.email=&lt;youremail@yourdomain.tld&gt;</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.storage=/acme.json</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.tlschallenge=true</span>
+
+        <span class="nt">ports</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;80:80&#39;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;443:443&#39;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;27017:27017&#39;</span>
+
+        <span class="nt">volumes</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="s">&quot;./acme.json:/acme.json&quot;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&quot;/var/run/docker.sock:/var/run/docker.sock:ro&quot;</span>
+
+<span class="hll">        <span class="nt">labels</span><span class="p">:</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.middlewares.compress.compress=true</span>
+</span><span class="hll">
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https</span>
+</span><span class="hll">
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.routers.redirs.rule=hostregexp(`{host:.+}`)</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.routers.redirs.entrypoints=web</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.routers.redirs.middlewares=redirect-to-https</span>
+</span></pre></div>
+</td></tr></table>
+
+<ul>
+<li><code>traefik.http.middlewares.compress.compress=true</code> creates a new traefik middleware called <em>compress</em> that compresses traffic</li>
+<li><code>traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https</code> creates a middleware that redirects traffic to HTTPS</li>
+<li><code>traefik.http.routers.redirs.rule=hostregexp(`{host:.+}`)</code> creates a router that matches to all domains</li>
+<li><code>traefik.http.routers.redirs.entrypoints=web</code> sets the router to listen on the HTTP <em>web</em> entrypoint</li>
+<li><code>traefik.http.routers.redirs.middlewares=redirect-to-https</code> enables the HTTPS redirection middleware</li>
+</ul>
+<p>Essentially, these labels enable compression on web traffic and automatically redirect any HTTP traffic to HTTPS.</p>
+<hr />
+<p>Finally, we can add our docker network:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="c1"># docker-compose.yml</span>
+
+<span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3.3&#39;</span>
+
+<span class="nt">services</span><span class="p">:</span>
+    <span class="nt">reverse-proxy</span><span class="p">:</span>
+        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">traefik:v2.0</span>
+        <span class="nt">container_name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">hostname</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">reverse-proxy</span>
+        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+
+        <span class="nt">command</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--providers.docker</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.web.address=:80</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.websecure.address=:443</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--entrypoints.mongodb.address=:27017</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.email=&lt;youremail@yourdomain.tld&gt;</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.storage=/acme.json</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">--certificatesresolvers.leresolver.acme.tlschallenge=true</span>
+
+        <span class="nt">ports</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;80:80&#39;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;443:443&#39;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&#39;27017:27017&#39;</span>
+
+        <span class="nt">volumes</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="s">&quot;./acme.json:/acme.json&quot;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&quot;/var/run/docker.sock:/var/run/docker.sock:ro&quot;</span>
+
+        <span class="nt">labels</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.middlewares.compress.compress=true</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https</span>
+
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.routers.redirs.rule=hostregexp(`{host:.+}`)</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.routers.redirs.entrypoints=web</span>
+            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">traefik.http.routers.redirs.middlewares=redirect-to-https</span>
+
+<span class="hll">        <span class="nt">networks</span><span class="p">:</span>
+</span><span class="hll">            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">strangescout_main</span>
+</span><span class="hll">
+</span><span class="hll"><span class="nt">networks</span><span class="p">:</span>
+</span><span class="hll">    <span class="nt">strangescout_main</span><span class="p">:</span>
+</span><span class="hll">        <span class="nt">external</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+</span></pre></div>
+</td></tr></table>
+
+<p>There are two parts to adding the network. First, we tell our reverse-proxy service to attach to the <code>strangescout_main</code> network, then we define the network in the top level of the compose file.</p>
+<h3 id="starting-the-reverse-proxy">Starting the reverse proxy<a class="headerlink" href="#starting-the-reverse-proxy" title="Permanent link">&para;</a></h3>
+<p>To start the reverse proxy you only need to run one command:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span>docker-compose up -d
+</pre></div>
+</td></tr></table>
+
+<p>As long as you're in the same directory as the <code>docker-compose.yml</code> file, it will automatically be read and the service will start up and fork to the background thanks to the <code>-d</code> flag!</p>
                 
                   
                 
