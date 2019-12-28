@@ -23,7 +23,7 @@ theme:
 
 nav:
   - Home: index.md
-  - Installation Guide: installation-guide/index.md
+  - Installation Guide: installation-guide.md
   - Scouter Guide: scouter-guide.md
   - StrangeScout API:
     - Authentication Routes: strangescout-api/authentication-routes.md

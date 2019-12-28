@@ -20,5 +20,8 @@
 		"nu",
 		"roboto",
 		"ws"
+	],
+	"cSpell.words": [
+		"containerd"
 	]
 }
