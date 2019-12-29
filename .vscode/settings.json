@@ -6,6 +6,7 @@
 		"dpy",
 		"dq",
 		"fv",
+		"initdb",
 		"j",
 		"jbd",
 		"kl",
@@ -28,5 +29,9 @@
 		"noto",
 		"roboto",
 		"codehilite",
+		"password",
+		"root",
+		"username",
+		"mongo",
 	]
 }

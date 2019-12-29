@@ -393,3 +393,170 @@ docker-compose up -d
 ```
 
 As long as you're in the same directory as the `docker-compose.yml` file, it will automatically be read and the service will start up and fork to the background thanks to the `-d` flag!
+
+## Setting up the database
+
+After we've setup the reverse proxy, we'll need a database to store our scouting data. In the case of StrangeScout we use [MongoDB](https://www.mongodb.com/).
+
+As with the reverse proxy, we'll once again create a directory to store the database files:
+
+``` shell
+mkdir -v database
+cd database
+```
+
+---
+
+We also need persistent storage for the database, so we'll create a directory for that as well:
+
+``` shell
+mkdir mongodb_data
+```
+
+### Creating the compose file
+
+To start, we need to create our compose file:
+
+``` shell
+touch docker-compose.yml
+```
+
+---
+
+The compose file for the database will start very similarly to that of the reverse proxy:
+
+``` yaml
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    mongodb:
+        image: mongo:4.2.2
+        container_name: mongodb
+        hostname: mongodb
+        restart: always
+```
+
+---
+
+Next, we need to mount our data directory into the container:
+
+``` yaml hl_lines="12 13"
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    mongodb:
+        image: mongo:4.2.2
+        container_name: mongodb
+        hostname: mongodb
+        restart: always
+
+        volumes:
+            - "./mongodb_data:/data/db"
+```
+
+---
+
+Next we need to setup the root database account:
+
+``` yaml hl_lines="15 16 17"
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    mongodb:
+        image: mongo:4.2.2
+        container_name: mongodb
+        hostname: mongodb
+        restart: always
+
+        volumes:
+            - "./mongodb_data:/data/db"
+
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: example-password
+```
+
+- `MONGO_INITDB_ROOT_USERNAME: root` sets the database's root account username to `root`
+- `MONGO_INITDB_ROOT_PASSWORD: example-password` sets the account password to `example-password`
+
+By convention you'll probably want to leave the username as root. Make sure the password is something secure because this account will have full read/write access to the entire database!
+
+---
+
+Now we need to set some labels to tell our reverse proxy how to route database traffic:
+
+``` yaml hl_lines="19 20 21"
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    mongodb:
+        image: mongo:4.2.2
+        container_name: mongodb
+        hostname: mongodb
+        restart: always
+
+        volumes:
+            - "./mongodb_data:/data/db"
+
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: example-password
+
+        labels:
+            - traefik.tcp.routers.mongodb.entrypoints=mongodb
+            - traefik.tcp.routers.mongodb.rule=HostSNI(`*`)
+```
+
+- `traefik.tcp.routers.mongodb.entrypoints=mongodb` tells traefik to put this container on a TCP router with the `mongodb` entrypoint we setup that allows traffic on MongoDB's port 27017
+- ``traefik.tcp.routers.mongodb.rule=HostSNI(`*`)`` tells traefik to match all domains, which is required for traefik TCP services
+
+---
+
+Finally, we attach the docker network to the container:
+
+``` yaml hl_lines="23 24 25 26 27 28"
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    mongodb:
+        image: mongo:4.2.2
+        container_name: mongodb
+        hostname: mongodb
+        restart: always
+
+        volumes:
+            - "./mongodb_data:/data/db"
+
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: example-password
+
+        labels:
+            - traefik.tcp.routers.mongodb.entrypoints=mongodb
+            - traefik.tcp.routers.mongodb.rule=HostSNI(`*`)
+
+        networks:
+            - strangescout_main
+
+networks:
+    strangescout_main:
+        external: true
+```
+
+### Starting the database
+
+The database will be started with the exact same command as the reverse proxy:
+
+``` shell
+docker-compose up -d
+```
