@@ -560,3 +560,220 @@ The database will be started with the exact same command as the reverse proxy:
 ``` shell
 docker-compose up -d
 ```
+
+## Building StrangeScout
+
+While we do provide prebuilt docker images, you may decide to build StrangeScout yourself. If you want to use prebuilt images you can skip this step.
+
+### Cloning the repository
+
+The first step to build any project is to clone its repository. StrangeScout has separate repositories for the frontend, backend, and deploy scripts. Since we're trying to build the final product, we want to clone the build repository. We also need to make sure we've cloned the submodules:
+
+``` shell
+git clone https://github.com/the-red-alliance/strangescout-deploy.git
+cd strangescout-deploy
+git submodule sync --recursive
+git submodule update --init --force --recursive
+```
+
+### Building the image
+
+Thanks to the premade Dockerfile, building the image is as simple as one command:
+
+``` shell
+docker image build -t strangescout .
+```
+
+Once the command completes, you'll have a docker image tagged `strangescout`!
+
+## Setting up StrangeScout
+
+Once again we'll start by creating a self contained directory:
+
+``` shell
+mkdir -v strangescout
+cd strangescout
+```
+
+### Creating the compose file
+
+The StrangeScout service itself doesn't require any persistent volumes or other local files, so all we have to do is create a compose file:
+
+``` shell
+touch docker-compose.yml
+```
+
+And start editing:
+
+``` yaml
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    strangescout:
+        image: theredalliance/strangescout:latest
+        container_name: strangescout
+        hostname: strangescout
+        restart: always
+```
+
+We once again start the same way as the database and reverse proxy services. Here we're using the latest prebuilt image, but if you built the image yourself you should put whatever you tagged it as for the `image` key. A list of prebuilt image tags can be found here: [https://hub.docker.com/r/theredalliance/strangescout/tags](https://hub.docker.com/r/theredalliance/strangescout/tags)
+
+---
+
+Next we need to set some environment variables:
+
+``` yaml hl_lines="12 13 14 15 16 17 18"
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    strangescout:
+        image: theredalliance/strangescout:latest
+        container_name: strangescout
+        hostname: strangescout
+        restart: always
+
+        environment:
+            - SECRET=jwt-secret
+            - "DB_URL=mongodb://root:db-password@mongodb:27017/dbname?authSource=admin"
+            - DB_DEBUG=true
+            - ADMIN_EMAIL=email@yourdomain.tld
+            - ADMIN_PASSWORD=supersecretpassword
+            - TBA_KEY=xxx
+```
+
+- `SECRET=jwt-secret` sets the secret used to encrypt the tokens used for authenticating users. This should be a random string of your choice.
+- `"DB_URL=mongodb://root:db-password@mongodb:27017/dbname?authSource=admin"` sets the URL of the database.
+    - `root:db-password` corresponds to the root username and password we set up earlier.
+    - `@mongodb:27017` says to go to port 27017 - the default MongoDB port, at hostname `mongodb`, which is what we set the database container hostname to.
+    - `dbname` is the name of the database within Mongo that your data will be stored in, and can be set to anything you want following the rules set here: [https://docs.mongodb.com/manual/reference/limits/#restrictions-on-db-names](https://docs.mongodb.com/manual/reference/limits/#restrictions-on-db-names).
+    - `?authSource=admin` says to use the `admin` database to find the user. This should not be changed.
+- `DB_DEBUG` enables debug logs from the backend (omit completely to disable)
+- `ADMIN_EMAIL` sets the email address of the default strangescout admin account
+- `ADMIN_PASSWORD` sets the password for the default admin account
+- `TBA_KEY` sets the API key for The Blue Alliance integration
+
+---
+
+Next we need to add a template file. StrangeScout uses a YAML file to define the game. Premade templates can be found under [Premade Game Templates](./premade-templates.md). To use your template, we need to mount it as a volume:
+
+``` yaml hl_lines="20 21"
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    strangescout:
+        image: theredalliance/strangescout:latest
+        container_name: strangescout
+        hostname: strangescout
+        restart: always
+
+        environment:
+            - SECRET=jwt-secret
+            - "DB_URL=mongodb://root:db-password@mongodb:27017/dbname?authSource=admin"
+            - DB_DEBUG=true
+            - ADMIN_EMAIL=email@yourdomain.tld
+            - ADMIN_PASSWORD=supersecretpassword
+            - TBA_KEY=xxx
+
+        volumes:
+            - ./template.yml:/template.yml
+```
+
+`./template.yml:/template.yml` tells docker to mount the file `./template.yml` at `/template.yml` inside the container. Change the first part of the mount to point to your template file.
+
+---
+
+Next we need to set some labels to tell Traefik how to route our container:
+
+``` yaml hl_lines="23 24 25 26 27"
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    strangescout:
+        image: theredalliance/strangescout:latest
+        container_name: strangescout
+        hostname: strangescout
+        restart: always
+
+        environment:
+            - SECRET=jwt-secret
+            - "DB_URL=mongodb://root:db-password@mongodb:27017/dbname?authSource=admin"
+            - DB_DEBUG=true
+            - ADMIN_EMAIL=email@yourdomain.tld
+            - ADMIN_PASSWORD=supersecretpassword
+            - TBA_KEY=xxx
+
+        volumes:
+            - ./template.yml:/template.yml
+
+        labels:
+            - traefik.http.routers.strangescout.rule=Host(`<yourdomain.tld>`)
+            - traefik.http.routers.strangescout.entrypoints=websecure
+            - traefik.http.routers.strangescout.tls.certresolver=leresolver
+            - traefik.http.routers.strangescout.middlewares=compress
+```
+
+- ``traefik.http.routers.strangescout.rule=Host(`<yourdomain.tld>`)`` tells traefik what domain to route to StrangeScout. Change `<yourdomain.tld>` accordingly.
+- `traefik.http.routers.strangescout.entrypoints=websecure` tells traefik to redirect traffic to HTTPS
+- `traefik.http.routers.strangescout.tls.certresolver=leresolver` tells traefik to automatically get HTTPS certificates
+- `traefik.http.routers.strangescout.middlewares=compress` tells traefik to compress traffic
+
+---
+
+The final step is to set the docker network:
+
+``` yaml hl_lines="29 30 31 32 33 34"
+# docker-compose.yml
+
+version: '3.3'
+
+services:
+    strangescout:
+        image: theredalliance/strangescout:latest
+        container_name: strangescout
+        hostname: strangescout
+        restart: always
+
+        environment:
+            - SECRET=jwt-secret
+            - "DB_URL=mongodb://root:db-password@mongodb:27017/dbname?authSource=admin"
+            - DB_DEBUG=true
+            - ADMIN_EMAIL=email@yourdomain.tld
+            - ADMIN_PASSWORD=supersecretpassword
+            - TBA_KEY=xxx
+
+        volumes:
+            - ./template.yml:/template.yml
+
+        labels:
+            - traefik.http.routers.strangescout.rule=Host(`<yourdomain.tld>`)
+            - traefik.http.routers.strangescout.entrypoints=websecure
+            - traefik.http.routers.strangescout.tls.certresolver=leresolver
+            - traefik.http.routers.strangescout.middlewares=compress
+
+        networks:
+            - strangescout_main
+
+networks:
+    strangescout_main:
+        external: true
+```
+
+## Starting StrangeScout
+
+We can now start StrangeScout:
+
+``` shell
+docker-compose up -d
+```
+
+## Setting Up Webhooks
+
+StrangeScout supports webhooks from The Blue Alliance API. So set them up, go to your api account on The Blue Alliance, and add a new webhook at url `https://<yourdomain.tld>/api/webhook`. Follow TBA's guide to set up the webhook. When you send the verification message, the code will be logged to the containers logs, along with the TBA_HMAC header. To finalize setup, add `TBA_HMAC` as an environment variable in the docker-compose file and set it to the logged TBA-HMAC header, and restart the container.

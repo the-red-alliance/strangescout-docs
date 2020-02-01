@@ -25,6 +25,7 @@ nav:
   - Home: index.md
   - Installation Guide: installation-guide.md
   - Scouter Guide: scouter-guide.md
+  - Premade Game Templates: premade-templates.md
   - StrangeScout API:
     - Authentication Routes: strangescout-api/authentication-routes.md
 
