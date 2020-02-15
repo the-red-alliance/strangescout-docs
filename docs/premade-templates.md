@@ -10,7 +10,7 @@ gameInfo: # general game info
   program: FRC # game program (frc/ftc)
   year: 2020 # game year
   duration: 150 # game duration
-events: # event keys to be used at
+events:
   - 2020ncpem
   - 2020ncgui
 positions: # possible starting positions
@@ -38,6 +38,7 @@ scout: # scouting template data
     - type: multi_item # element type
       activeTime: 0 # T+ time to activate the element
       display: "Power Cells" # element display name (multi item)
+      analysisDisplay: "Power Cells"
       key: "power_cells" # element key (multi item)
       max: 5 # max to be held (multi item)
       get: # get event (multi item)
@@ -57,6 +58,7 @@ scout: # scouting template data
       ignoreHold: true # doable when holding
       endDisable: true # disables at the end
       display: "Start Control Panel"
+      analysisDisplay: "Control Panel"
       key: start_panel
       children:
         - display: "Successful Spin"
@@ -70,12 +72,15 @@ scout: # scouting template data
       endDisable: false # doesn't disable at the end
       singleUse: true # can only occur once
       display: "Start Hang"
+      analysisDisplay: "Hang"
       key: start_hang
       children:
         - display: "Successful Hang"
           key: successful_hang
         - display: "Failed Hang"
           key: failed_hang
+        - display: "Parked"
+          key: park_hang
     - type: duration # duration element
       activeTime: 0
       key: defense
@@ -83,22 +88,23 @@ scout: # scouting template data
       startKey: start_defend
       endDisplay: "Stop Defending"
       endKey: end_defend
+      analysisDisplay: "Defense"
       ignoreHold: true
       endDisable: true
-  pit: # pit scouting
-    - type: number # a number input
-      name: Ground Clearance (inches) # the display name
-      key: ground_clearance # the field key
-      required: true # is it required
+  pit:
+    - type: number
+      name: Ground Clearance (inches)
+      key: ground_clearance
+      required: true
     - type: boolean
       name: Control Panel Clearance
       key: control_panel
-    - type: select # a select input
-      name: Drivetrain # the display name
-      key: drivetrain # the input key
-      options: # the select options
-        - name: Kit Bot # option display
-          key: kit_bot # option value
+    - type: select
+      name: Drivetrain
+      key: drivetrain
+      options:
+        - name: Kit Bot
+          key: kit_bot
         - name: Swerve
           key: swerve
         - name: West Coast
