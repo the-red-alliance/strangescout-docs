@@ -13,15 +13,8 @@ gameInfo: # general game info
 events:
   - 2020ncpem
   - 2020ncgui
-positions: # possible starting positions
-  - display: Left # position display name
-    key: left # position key
-  - display: Middle
-    key: middle
-  - display: Right
-    key: right
 loadouts: # robot starting loadouts
-  - display: "Power Cell" # loadout display name
+  - display: "1 Power Cell" # loadout display name
     events: # list of events loadout triggers
       - get_cell
   - display: "2 Power Cells"
@@ -61,12 +54,14 @@ scout: # scouting template data
       analysisDisplay: "Control Panel"
       key: start_panel
       children:
-        - display: "Successful Spin"
+        - display: "Successful Attempt"
           key: successful_panel
-        - display: "Failed Spin"
+        - display: "Failed Attempt"
           key: failed_panel
+        - display: "Stopped Attempt"
+          key: stopped_panel
     - type: single_item # single item
-      activeTime: 120 # activates at T+120 / T-30
+      activeTime: 105 # activates at T+105 / T-45
       canHold: false # can't hold
       ignoreHold: true # doable while holding
       endDisable: false # doesn't disable at the end
