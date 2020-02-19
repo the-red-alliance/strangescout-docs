@@ -495,12 +495,7 @@
 110
 111
 112
-113
-114
-115
-116
-117
-118</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="nn">---</span>
+113</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="nn">---</span>
 <span class="nt">gameInfo</span><span class="p">:</span> <span class="c1"># general game info</span>
   <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;2020</span><span class="nv"> </span><span class="s">FIRST</span><span class="nv"> </span><span class="s">Infinite</span><span class="nv"> </span><span class="s">Recharge&quot;</span> <span class="c1"># game name</span>
   <span class="nt">program</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">FRC</span> <span class="c1"># game program (frc/ftc)</span>
@@ -509,15 +504,8 @@
 <span class="nt">events</span><span class="p">:</span>
   <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">2020ncpem</span>
   <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">2020ncgui</span>
-<span class="nt">positions</span><span class="p">:</span> <span class="c1"># possible starting positions</span>
-  <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Left</span> <span class="c1"># position display name</span>
-    <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">left</span> <span class="c1"># position key</span>
-  <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Middle</span>
-    <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">middle</span>
-  <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Right</span>
-    <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">right</span>
 <span class="nt">loadouts</span><span class="p">:</span> <span class="c1"># robot starting loadouts</span>
-  <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="s">&quot;Power</span><span class="nv"> </span><span class="s">Cell&quot;</span> <span class="c1"># loadout display name</span>
+  <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="s">&quot;1</span><span class="nv"> </span><span class="s">Power</span><span class="nv"> </span><span class="s">Cell&quot;</span> <span class="c1"># loadout display name</span>
     <span class="nt">events</span><span class="p">:</span> <span class="c1"># list of events loadout triggers</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">get_cell</span>
   <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="s">&quot;2</span><span class="nv"> </span><span class="s">Power</span><span class="nv"> </span><span class="s">Cells&quot;</span>
@@ -557,12 +545,14 @@
       <span class="nt">analysisDisplay</span><span class="p">:</span> <span class="s">&quot;Control</span><span class="nv"> </span><span class="s">Panel&quot;</span>
       <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">start_panel</span>
       <span class="nt">children</span><span class="p">:</span>
-        <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="s">&quot;Successful</span><span class="nv"> </span><span class="s">Spin&quot;</span>
+        <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="s">&quot;Successful</span><span class="nv"> </span><span class="s">Attempt&quot;</span>
           <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">successful_panel</span>
-        <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="s">&quot;Failed</span><span class="nv"> </span><span class="s">Spin&quot;</span>
+        <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="s">&quot;Failed</span><span class="nv"> </span><span class="s">Attempt&quot;</span>
           <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">failed_panel</span>
+        <span class="p p-Indicator">-</span> <span class="nt">display</span><span class="p">:</span> <span class="s">&quot;Stopped</span><span class="nv"> </span><span class="s">Attempt&quot;</span>
+          <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">stopped_panel</span>
     <span class="p p-Indicator">-</span> <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">single_item</span> <span class="c1"># single item</span>
-      <span class="nt">activeTime</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">120</span> <span class="c1"># activates at T+120 / T-30</span>
+      <span class="nt">activeTime</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">105</span> <span class="c1"># activates at T+105 / T-45</span>
       <span class="nt">canHold</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span> <span class="c1"># can&#39;t hold</span>
       <span class="nt">ignoreHold</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span> <span class="c1"># doable while holding</span>
       <span class="nt">endDisable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span> <span class="c1"># doesn&#39;t disable at the end</span>
